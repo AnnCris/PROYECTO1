@@ -1,0 +1,136 @@
+<!-- templates/usuarios/login.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Iniciar Sesión</title>
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Roboto:300);
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: linear-gradient(
+          90deg,
+          rgb(111, 173, 194) 0%,
+          rgb(82, 94, 184) 50%
+        );
+        font-family: "Roboto", sans-serif;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .login-page {
+        width: 360px;
+        padding: 8% 0 0;
+        margin: auto;
+      }
+
+      .form {
+        position: relative;
+        background: #ffffff;
+        max-width: 360px;
+        padding: 45px;
+        text-align: center;
+        box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2),
+          0 5px 5px 0 rgba(0, 0, 0, 0.24);
+        border-radius: 8px;
+      }
+
+      .form input {
+        font-family: "Roboto", sans-serif;
+        outline: 0;
+        background: #f2f2f2;
+        width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 0 0 15px;
+        padding: 15px;
+        box-sizing: border-box;
+        font-size: 14px;
+        transition: all 0.3s ease;
+      }
+
+      .form input:focus {
+        border-color:rgb(76, 134, 175);
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+      }
+
+      .form button {
+        font-family: "Roboto", sans-serif;
+        text-transform: uppercase;
+        outline: 0;
+        background:rgb(76, 97, 175);
+        width: 100%;
+        border: 0;
+        border-radius: 4px;
+        padding: 15px;
+        color: #ffffff;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .form button:hover {
+        background:rgb(67, 87, 160);
+      }
+
+      .form .message {
+        margin: 15px 0 0;
+        color: #666;
+        font-size: 12px;
+      }
+
+      .form .message a {
+        color:rgb(76, 153, 175);
+        text-decoration: none;
+      }
+
+      .alert {
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 4px;
+        background: #ffebee;
+        color: #c62828;
+        font-size: 13px;
+      }
+
+      .form-title {
+        margin-bottom: 30px;
+        color: #333;
+        font-size: 24px;
+      }
+
+      label {
+        display: block;
+        text-align: left;
+        margin-bottom: 5px;
+        color: #666;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-page">
+      <div class="form">
+        <h2 class="form-title">Iniciar Sesión</h2>
+        {% if messages %} {% for message in messages %}
+        <div class="alert">{{ message }}</div>
+        {% endfor %} {% endif %}
+        <form method="post" class="login-form">
+          {% csrf_token %} {{ form.as_p }}
+          <button type="submit">Iniciar Sesión</button>
+          <p class="message">
+            ¿No estás registrado?
+            <a href="{% url 'registro' %}">Crear cuenta</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

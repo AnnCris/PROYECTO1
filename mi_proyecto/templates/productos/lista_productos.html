@@ -1,0 +1,318 @@
+{% extends 'base.html' %} {% block content %}
+<style>
+  /* Estilos para el modal y formulario */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .modal.active {
+    display: flex;
+  }
+
+  .modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    width: 600px;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.5rem;
+  }
+
+  .close-btn {
+    cursor: pointer;
+    font-size: 24px;
+    color: #666;
+    transition: color 0.3s;
+  }
+
+  .close-btn:hover {
+    color: #333;
+  }
+
+  /* Estilos para el formulario dentro del modal */
+  .modal form {
+    display: grid;
+    gap: 15px;
+  }
+
+  .modal form p {
+    margin: 0;
+  }
+
+  .modal label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+    font-weight: 500;
+  }
+
+  .modal input[type="text"],
+  .modal input[type="number"],
+  .modal input[type="email"],
+  .modal select,
+  .modal textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+  }
+
+  .modal input:focus,
+  .modal select:focus,
+  .modal textarea:focus {
+    outline: none;
+    border-color: rgb(68, 108, 148);
+    box-shadow: 0 0 0 2px rgba(68, 108, 148, 0.1);
+  }
+
+  .modal textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  .modal select {
+    background-color: white;
+  }
+
+  /* Estilo para checkbox */
+  .modal .form-check-input {
+    width: auto;
+    margin-right: 8px;
+  }
+
+  /* Botón de guardar */
+  .modal .btn-primary {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    background: rgb(68, 108, 148);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .modal .btn-primary:hover {
+    background: rgb(72, 118, 158);
+  }
+
+  /* Mensajes de error */
+  .modal .errorlist {
+    color: #dc3545;
+    list-style: none;
+    padding: 0;
+    margin: 5px 0;
+    font-size: 0.875rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .modal-content {
+      width: 95%;
+      padding: 20px;
+    }
+  }
+</style>
+<div class="user-table">
+  <div class="header-actions">
+    <h2>Gestión de Productos</h2>
+    <button class="btn-primary" onclick="mostrarModalCrear()">
+      Nuevo Producto
+    </button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Nombre</th>
+        <th>Categoría</th>
+        <th>Precio</th>
+        <th>Stock</th>
+        <th>Marca</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for producto in productos %}
+      <tr>
+        <td>{{ producto.codigo }}</td>
+        <td>{{ producto.nombre }}</td>
+        <td>{{ producto.get_categoria_display }}</td>
+        <td>${{ producto.precio }}</td>
+        <td>{{ producto.stock }}</td>
+        <td>{{ producto.marca }}</td>
+        <td>
+          <span
+            class="status-badge {% if producto.activo %}status-active{% else %}status-inactive{% endif %}">
+            {{ producto.activo|yesno:"Activo,Inactivo" }}
+          </span>
+        </td>
+        <td>
+          <button
+            class="action-btn edit-btn"
+            onclick="editarProducto({{ producto.id }})">
+            Editar
+          </button>
+          <button
+            class="action-btn delete-btn"
+            onclick="eliminarProducto({{ producto.id }})">
+            Eliminar
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal para crear/editar producto -->
+<div id="productoModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">Nuevo Producto</h3>
+      <span class="close-btn" onclick="cerrarModal()">&times;</span>
+    </div>
+    <form id="productoForm" onsubmit="guardarProducto(event)">
+      {% csrf_token %} {{ form.as_p }}
+      <button type="submit" class="btn-primary">Guardar</button>
+    </form>
+  </div>
+</div>
+
+{% endblock %} {% block extra_scripts %}
+<script>
+  function mostrarModalCrear() {
+    document.getElementById("modalTitle").textContent = "Nuevo Producto";
+    document.getElementById("productoForm").reset();
+    document.getElementById("productoModal").classList.add("active");
+  }
+
+  function cerrarModal() {
+    document.getElementById("productoModal").classList.remove("active");
+  }
+
+  async function guardarProducto(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const productoId = form.dataset.productoId;
+
+    try {
+      const url = productoId
+        ? `/productos/actualizar/${productoId}/`
+        : "/productos/crear/";
+
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+            .value,
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        location.reload();
+      } else {
+        if (typeof data.error === "object") {
+          let errorMessage = "";
+          for (const [field, message] of Object.entries(data.error)) {
+            errorMessage += `${field}: ${message}\n`;
+          }
+          alert(errorMessage);
+        } else {
+          alert(data.error || "Error al procesar la solicitud");
+        }
+      }
+    } catch (error) {
+      alert("Error al procesar la solicitud");
+    }
+  }
+
+  async function editarProducto(productoId) {
+    try {
+      const response = await fetch(`/productos/detalle/${productoId}/`);
+      if (!response.ok) {
+        throw new Error("Error al obtener los datos del producto");
+      }
+      const producto = await response.json();
+
+      document.getElementById("modalTitle").textContent = "Editar Producto";
+      const form = document.getElementById("productoForm");
+      form.dataset.productoId = productoId;
+
+      for (const [key, value] of Object.entries(producto)) {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input) {
+          if (input.type === "checkbox") {
+            input.checked = value;
+          } else {
+            input.value = value || "";
+          }
+        }
+      }
+
+      document.getElementById("productoModal").classList.add("active");
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al cargar los datos del producto");
+    }
+  }
+
+  async function eliminarProducto(productoId) {
+    if (confirm("¿Está seguro de eliminar este producto?")) {
+      try {
+        const response = await fetch(`/productos/eliminar/${productoId}/`, {
+          method: "DELETE",
+          headers: {
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+              .value,
+          },
+        });
+
+        if (response.ok) {
+          location.reload();
+        } else {
+          const data = await response.json();
+          alert(data.error);
+        }
+      } catch (error) {
+        alert("Error al eliminar el producto");
+      }
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %} {% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <h3>Ventas del Día</h3>
+    <div class="value">$1,234.56</div>
+  </div>
+  <div class="stat-card">
+    <h3>Ventas del Mes</h3>
+    <div class="value">$12,345.67</div>
+  </div>
+  <div class="stat-card">
+    <h3>Total Productos</h3>
+    <div class="value">145</div>
+  </div>
+  <div class="stat-card">
+    <h3>Clientes Activos</h3>
+    <div class="value">89</div>
+  </div>
+</div>
+
+<div class="recent-sales">
+  <h2>Ventas Recientes</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#Orden</th>
+        <th>Cliente</th>
+        <th>Producto</th>
+        <th>Fecha</th>
+        <th>Monto</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>001</td>
+        <td>Juan Pérez</td>
+        <td>Producto A</td>
+        <td>2024-02-23</td>
+        <td>$100.00</td>
+        <td>Completado</td>
+      </tr>
+      <tr>
+        <td>002</td>
+        <td>María García</td>
+        <td>Producto B</td>
+        <td>2024-02-23</td>
+        <td>$150.00</td>
+        <td>Pendiente</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
