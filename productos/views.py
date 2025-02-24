@@ -50,15 +50,32 @@ def detalle_producto(request, producto_id):
         return JsonResponse({'error': str(e)}, status=400)
 
 @login_required
-@require_http_methods(["POST"])
+@require_http_methods(["PUT"])
 def actualizar_producto(request, producto_id):
+    import json
     producto = get_object_or_404(Producto, id=producto_id)
     try:
-        form = ProductoForm(request.POST, instance=producto)
+        # Decodificar los datos JSON del body
+        data = json.loads(request.body)
+        form = ProductoForm(data, instance=producto)
         if form.is_valid():
             producto = form.save()
-            return JsonResponse({'message': 'Producto actualizado exitosamente'})
+            return JsonResponse({
+                'message': 'Producto actualizado exitosamente',
+                'producto': {
+                    'id': producto.id,
+                    'codigo': producto.codigo,
+                    'nombre': producto.nombre,
+                    'categoria': producto.get_categoria_display(),
+                    'precio': str(producto.precio),
+                    'stock': producto.stock,
+                    'marca': producto.marca,
+                    'activo': producto.activo
+                }
+            })
         return JsonResponse({'error': form.errors}, status=400)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Datos JSON inválidos'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 

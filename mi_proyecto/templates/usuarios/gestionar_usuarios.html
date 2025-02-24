@@ -308,7 +308,7 @@
                 <td>
                   <button
                     class="action-btn edit-btn"
-                    onclick="editarUsuario('{{ usuario.id }}', '{{ usuario.username }}', '{{ usuario.email }}', '{{ usuario.rol.id|default:'' }}', {{ usuario.is_active|lower }})">
+                    onclick="editarUsuario('{{ usuario.id }}', '{{ usuario.username }}', '{{ usuario.email }}', '{{ usuario.rol.id|default:'' }}', {{ usuario.is_active|yesno:'true,false' }})">
                     Editar
                   </button>
                   <button
@@ -360,20 +360,25 @@
                 {% endfor %}
               </select>
             </div>
+            <div class="form-row">
+              <label for="isActive">Estado:</label>
+              <select id="isActive" name="is_active" class="form-control">
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
+              </select>
+            </div>
             <div class="form-row" id="passwordFields">
               <label for="password1">Contraseña:</label>
               <input
                 type="password"
                 id="password1"
                 name="password1"
-                required
                 class="form-control" />
               <label for="password2">Confirmar Contraseña:</label>
               <input
                 type="password"
                 id="password2"
                 name="password2"
-                required
                 class="form-control" />
             </div>
             <button type="submit" class="btn-primary">Guardar</button>
@@ -386,7 +391,14 @@
           document.getElementById("modalTitle").textContent = "Crear Usuario";
           document.getElementById("userForm").reset();
           document.getElementById("userId").value = "";
+
+          // Agregar el required a los campos de contraseña y mostrarlos
+          const password1 = document.getElementById("password1");
+          const password2 = document.getElementById("password2");
+          password1.setAttribute("required", "required");
+          password2.setAttribute("required", "required");
           document.getElementById("passwordFields").style.display = "block";
+
           document.getElementById("userModal").classList.add("active");
         }
 
@@ -395,9 +407,16 @@
           document.getElementById("userId").value = id;
           document.getElementById("username").value = username;
           document.getElementById("email").value = email;
-          document.getElementById("rol").value = rolId;
-          document.getElementById("isActive").checked = isActive;
+          document.getElementById("rol").value = rolId || "";
+          document.getElementById("isActive").value = isActive.toString();
+
+          // Remover el required de los campos de contraseña y ocultarlos
+          const password1 = document.getElementById("password1");
+          const password2 = document.getElementById("password2");
+          password1.removeAttribute("required");
+          password2.removeAttribute("required");
           document.getElementById("passwordFields").style.display = "none";
+
           document.getElementById("userModal").classList.add("active");
         }
 
@@ -433,38 +452,62 @@
           }
         }
 
-        // En gestionar_usuarios.html
         async function manejarSubmit(event) {
           event.preventDefault();
-          const form = event.target;
           const userId = document.getElementById("userId").value;
-          const formData = new FormData(form);
+
+          // Recoger los datos del formulario
+          const datos = {
+            username: document.getElementById("username").value,
+            email: document.getElementById("email").value,
+            rol_id: document.getElementById("rol").value,
+            is_active: document.getElementById("isActive").value === "true",
+          };
+
+          if (!userId) {
+            // Si es creación, añadir las contraseñas
+            const password1 = document.getElementById("password1").value;
+            const password2 = document.getElementById("password2").value;
+
+            if (!password1 || !password2) {
+              alert("Las contraseñas son requeridas para crear un usuario");
+              return;
+            }
+
+            datos.password1 = password1;
+            datos.password2 = password2;
+          }
 
           try {
-            let url = userId
+            const url = userId
               ? `/actualizar-usuario/${userId}/`
               : "/crear-usuario/";
-            let method = "POST";
+            const method = userId ? "PUT" : "POST";
 
             const response = await fetch(url, {
               method: method,
-              body: formData,
               headers: {
+                "Content-Type": "application/json",
                 "X-CSRFToken": document.querySelector(
                   "[name=csrfmiddlewaretoken]"
                 ).value,
               },
+              body: JSON.stringify(datos),
             });
 
             const data = await response.json();
+
             if (response.ok) {
               location.reload();
             } else {
               if (typeof data.error === "object") {
-                // Mostrar errores específicos de cada campo
                 let errorMessage = "";
-                for (const [field, message] of Object.entries(data.error)) {
-                  errorMessage += `${field}: ${message}\n`;
+                for (const [field, messages] of Object.entries(data.error)) {
+                  if (Array.isArray(messages)) {
+                    errorMessage += `${field}: ${messages.join(", ")}\n`;
+                  } else {
+                    errorMessage += `${field}: ${messages}\n`;
+                  }
                 }
                 alert(errorMessage);
               } else {

@@ -1,3 +1,4 @@
+import json
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -107,53 +108,97 @@ def gestionar_usuarios(request):
 @require_http_methods(["POST"])
 def crear_usuario(request):
     try:
-        form = RegistroForm(request.POST)
+        # Obtener los datos del cuerpo de la petición
+        data = json.loads(request.body)
+        
+        # Crear el diccionario de datos para el formulario
+        form_data = {
+            'username': data.get('username'),
+            'email': data.get('email'),
+            'password1': data.get('password1'),
+            'password2': data.get('password2'),
+            'rol': data.get('rol_id'),
+            'is_active': data.get('is_active', True)
+        }
+        
+        form = RegistroForm(form_data)
         if form.is_valid():
             usuario = form.save(commit=False)
-            usuario.rol = form.cleaned_data['rol']
+            usuario.rol_id = form_data['rol']  # Asignar el rol directamente por ID
+            usuario.is_active = form_data['is_active']
             usuario.save()
-            messages.success(request, f'Usuario {usuario.username} creado exitosamente')
-            return JsonResponse({'message': 'Usuario creado exitosamente'})
+            
+            return JsonResponse({
+                'message': 'Usuario creado exitosamente',
+                'usuario': {
+                    'id': usuario.id,
+                    'username': usuario.username,
+                    'email': usuario.email,
+                    'rol': usuario.rol.nombre if usuario.rol else None,
+                    'is_active': usuario.is_active
+                }
+            })
         else:
             # Devolver errores de validación específicos
             errores = {}
             for field, error_list in form.errors.items():
-                errores[field] = error_list[0]
+                errores[field] = list(error_list)
             return JsonResponse({'error': errores}, status=400)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Datos JSON inválidos'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
-
+    
 @login_required
 @rol_requerido(['Administrador'])
-@require_http_methods(["POST"])
+@require_http_methods(["PUT"])
 def actualizar_usuario(request, usuario_id):
+    import json
     usuario = get_object_or_404(UsuarioPersonalizado, id=usuario_id)
     
-    username = request.POST.get('username')
-    email = request.POST.get('email')
-    rol_id = request.POST.get('rol_id')
-    is_active = request.POST.get('is_active') == 'true'
-    
+    # Con PUT, los datos vienen en request.body como JSON
     try:
+        datos = json.loads(request.body)
+        username = datos.get('username')
+        email = datos.get('email')
+        rol_id = datos.get('rol_id')
+        is_active = datos.get('is_active')
+        
         # Validar datos únicos
         if UsuarioPersonalizado.objects.exclude(id=usuario_id).filter(username=username).exists():
             return JsonResponse({'error': 'El nombre de usuario ya existe'}, status=400)
         if UsuarioPersonalizado.objects.exclude(id=usuario_id).filter(email=email).exists():
             return JsonResponse({'error': 'El email ya existe'}, status=400)
         
-        usuario.username = username
-        usuario.email = email
-        usuario.is_active = is_active
+        # Actualizar solo si los campos están presentes
+        if username:
+            usuario.username = username
+        if email:
+            usuario.email = email
+        if is_active is not None:
+            usuario.is_active = is_active
         
         if rol_id:
             rol = get_object_or_404(Rol, id=rol_id)
             usuario.rol = rol
             
         usuario.save()
-        return JsonResponse({'message': 'Usuario actualizado exitosamente'})
+        return JsonResponse({
+            'message': 'Usuario actualizado exitosamente',
+            'usuario': {
+                'id': usuario.id,
+                'username': usuario.username,
+                'email': usuario.email,
+                'is_active': usuario.is_active,
+                'rol': usuario.rol.nombre if usuario.rol else None
+            }
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Datos JSON inválidos'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
-
+    
 @login_required
 @rol_requerido(['Administrador'])
 @require_http_methods(["DELETE"])

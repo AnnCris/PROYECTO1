@@ -304,10 +304,14 @@
           <li class="nav-item"><a href="{% url 'inicio' %}">Dashboard</a></li>
           <li class="nav-item">Ventas</li>
           <li class="nav-item">
-            <a href="{% url 'productos:lista_productos' %}" class="active">Productos</a>
+            <a href="{% url 'productos:lista_productos' %}" class="active"
+              >Productos</a
+            >
           </li>
           <li class="nav-item">
-            <a href="{% url 'clientes:lista_clientes' %}" class="active">Clientes</a>
+            <a href="{% url 'clientes:lista_clientes' %}" class="active"
+              >Clientes</a
+            >
           </li>
           <li class="nav-item">
             <a href="{% url 'gestionar_usuarios' %}">Usuarios</a>
@@ -413,7 +417,6 @@
       async function guardarCliente(event) {
         event.preventDefault();
         const form = event.target;
-        const formData = new FormData(form);
         const clienteId = form.dataset.clienteId;
 
         try {
@@ -421,27 +424,64 @@
             ? `/clientes/actualizar/${clienteId}/`
             : "/clientes/crear/";
 
-          const response = await fetch(url, {
-            method: "POST",
-            body: formData,
-            headers: {
-              "X-CSRFToken": document.querySelector(
-                "[name=csrfmiddlewaretoken]"
-              ).value,
-            },
-          });
+          if (clienteId) {
+            // Si es actualización, enviar como JSON
+            const formData = new FormData(form);
+            const datos = {};
+            formData.forEach((value, key) => {
+              datos[key] = value;
+            });
 
-          const data = await response.json();
-          if (response.ok) {
-            location.reload();
+            const response = await fetch(url, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": document.querySelector(
+                  "[name=csrfmiddlewaretoken]"
+                ).value,
+              },
+              body: JSON.stringify(datos),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+              location.reload();
+            } else {
+              if (typeof data.error === "object") {
+                let errorMessage = "";
+                for (const [field, message] of Object.entries(data.error)) {
+                  errorMessage += `${field}: ${message}\n`;
+                }
+                alert(errorMessage);
+              } else {
+                alert(data.error || "Error al procesar la solicitud");
+              }
+            }
           } else {
-            alert(data.error);
+            // Si es creación, mantener FormData
+            const formData = new FormData(form);
+            const response = await fetch(url, {
+              method: "POST",
+              body: formData,
+              headers: {
+                "X-CSRFToken": document.querySelector(
+                  "[name=csrfmiddlewaretoken]"
+                ).value,
+              },
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+              location.reload();
+            } else {
+              alert(data.error);
+            }
           }
         } catch (error) {
+          console.error("Error:", error);
           alert("Error al procesar la solicitud");
         }
       }
-
       async function eliminarCliente(clienteId) {
         if (confirm("¿Está seguro de eliminar este cliente?")) {
           try {
