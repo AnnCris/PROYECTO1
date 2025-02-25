@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  .header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .header-actions h2 {
+    margin: 0;
+  }
+  .btn-primary {
+    background: rgb(68, 108, 148);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  .btn-primary:hover {
+    background: rgb(72, 118, 158);
+  }
+  .status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .status-pendiente {
+    background-color: #ffc107;
+    color: black;
+  }
+  .status-pagado {
+    background-color: #28a745;
+    color: white;
+  }
+  .status-entregado {
+    background-color: #17a2b8;
+    color: white;
+  }
+  .status-cancelado {
+    background-color: #dc3545;
+    color: white;
+  }
+  .action-btn {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    margin: 0 2px;
+    transition: all 0.3s ease;
+  }
+  .view-btn {
+    background-color: #17a2b8;
+    color: white;
+  }
+  .view-btn:hover {
+    background-color: #138496;
+  }
+  .delete-btn {
+    background-color: #dc3545;
+    color: white;
+  }
+  .delete-btn:hover {
+    background-color: #c82333;
+  }
+  .filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    align-items: center;
+  }
+  .filters select, .filters input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  .filters label {
+    margin-right: 5px;
+    font-weight: 500;
+  }
+</style>
+
+<div class="ventas-container">
+  <div class="header-actions">
+    <h2>Gestión de Ventas</h2>
+    <a href="{% url 'ventas:nueva_venta' %}" class="btn-primary">Nueva Venta</a>
+  </div>
+
+  <div class="filters">
+    <div>
+      <label for="estado-filter">Estado:</label>
+      <select id="estado-filter">
+        <option value="">Todos</option>
+        <option value="PD">Pendiente</option>
+        <option value="PG">Pagado</option>
+        <option value="ET">Entregado</option>
+        <option value="CN">Cancelado</option>
+      </select>
+    </div>
+    <div>
+      <label for="fecha-desde">Desde:</label>
+      <input type="date" id="fecha-desde">
+    </div>
+    <div>
+      <label for="fecha-hasta">Hasta:</label>
+      <input type="date" id="fecha-hasta">
+    </div>
+    <button class="btn-primary" onclick="aplicarFiltros()">Filtrar</button>
+    <button class="action-btn" onclick="limpiarFiltros()">Limpiar</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Fecha</th>
+        <th>Cliente</th>
+        <th>Estado</th>
+        <th>Método de Pago</th>
+        <th>Total</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for venta in ventas %}
+      <tr>
+        <td>{{ venta.id }}</td>
+        <td>{{ venta.fecha|date:"d/m/Y H:i" }}</td>
+        <td>{{ venta.cliente.nombre }}</td>
+        <td>
+          <span class="status-badge status-{{ venta.get_estado_display|lower }}">
+            {{ venta.get_estado_display }}
+          </span>
+        </td>
+        <td>{{ venta.get_metodo_pago_display }}</td>
+        <td>Bs. {{ venta.total }}</td>
+        <td>
+          <a href="{% url 'ventas:detalle_venta' venta.id %}" class="action-btn view-btn">Ver</a>
+          {% if venta.estado == 'PD' %}
+          <button class="action-btn delete-btn" onclick="eliminarVenta({{ venta.id }})">Eliminar</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center">No hay ventas registradas</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function eliminarVenta(ventaId) {
+    if (confirm("¿Está seguro de eliminar esta venta?")) {
+      fetch(`/ventas/api/eliminar/${ventaId}/`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || 'Error al eliminar la venta');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar la solicitud');
+      });
+    }
+  }
+
+  function aplicarFiltros() {
+    const estado = document.getElementById('estado-filter').value;
+    const fechaDesde = document.getElementById('fecha-desde').value;
+    const fechaHasta = document.getElementById('fecha-hasta').value;
+    
+    let url = window.location.pathname + '?';
+    if (estado) url += `estado=${estado}&`;
+    if (fechaDesde) url += `desde=${fechaDesde}&`;
+    if (fechaHasta) url += `hasta=${fechaHasta}&`;
+    
+    window.location.href = url;
+  }
+
+  function limpiarFiltros() {
+    document.getElementById('estado-filter').value = '';
+    document.getElementById('fecha-desde').value = '';
+    document.getElementById('fecha-hasta').value = '';
+    window.location.href = window.location.pathname;
+  }
+</script>
+{% endblock %}

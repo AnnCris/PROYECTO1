@@ -1,0 +1,485 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  .venta-container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .venta-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .header-title h2 {
+    margin: 0;
+    color: #333;
+  }
+  .info-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+  }
+  .info-item {
+    margin-bottom: 12px;
+  }
+  .info-label {
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 5px;
+    display: block;
+  }
+  .info-value {
+    font-size: 16px;
+  }
+  .status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .status-pendiente {
+    background-color: #ffc107;
+    color: black;
+  }
+  .status-pagado {
+    background-color: #28a745;
+    color: white;
+  }
+  .status-entregado {
+    background-color: #17a2b8;
+    color: white;
+  }
+  .status-cancelado {
+    background-color: #dc3545;
+    color: white;
+  }
+  .table-container {
+    margin-bottom: 20px;
+  }
+  .productos-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .productos-table th,
+  .productos-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+  .productos-table th {
+    background-color: #f1f1f1;
+  }
+  .totales {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-top: 20px;
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    width: 250px;
+    margin-bottom: 8px;
+  }
+  .total-label {
+    font-weight: 500;
+  }
+  .total-value {
+    font-weight: bold;
+  }
+  .total-final {
+    font-size: 18px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 2px solid #ddd;
+  }
+  .btn-primary {
+    background: rgb(68, 108, 148);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary:hover {
+    background: rgb(72, 118, 158);
+  }
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-secondary:hover {
+    background: #5a6268;
+  }
+  .actions-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+  }
+  .notas-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+  }
+  .edit-estado {
+    margin-left: 10px;
+    padding: 2px 6px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  #estado-selector {
+    display: none;
+  }
+  .modal-print {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal-print.active {
+    display: flex;
+  }
+  .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 500px;
+    max-width: 90%;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  .close-btn {
+    cursor: pointer;
+    font-size: 20px;
+  }
+  .print-options {
+    margin-bottom: 20px;
+  }
+  .print-btn {
+    width: 100%;
+    padding: 10px;
+    background: rgb(68, 108, 148);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+</style>
+
+<div class="venta-container">
+  <div class="venta-header">
+    <div class="header-title">
+      <h2>Detalle de Venta #{{ venta.id }}</h2>
+    </div>
+    <div>
+      <button id="imprimir-btn" class="btn-primary" style="margin-right: 10px;">Imprimir</button>
+      <a href="{% url 'ventas:lista_ventas' %}" class="btn-secondary">Volver a la lista</a>
+    </div>
+  </div>
+
+  <div class="info-section">
+    <h3>Información General</h3>
+    <div class="info-grid">
+      <div class="info-item">
+        <span class="info-label">Cliente:</span>
+        <span class="info-value">{{ venta.cliente.nombre }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Fecha:</span>
+        <span class="info-value">{{ venta.fecha|date:"d/m/Y H:i" }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Estado:</span>
+        <div class="info-value">
+          <span id="estado-actual" class="status-badge status-{{ venta.get_estado_display|lower }}">
+            {{ venta.get_estado_display }}
+          </span>
+          {% if venta.estado == 'PD' %}
+          <button id="editar-estado" class="edit-estado">Cambiar</button>
+          <div id="estado-selector" style="margin-top: 5px;">
+            <select id="nuevo-estado" class="form-control" style="display: inline-block; width: auto;">
+              <option value="PD" {% if venta.estado == 'PD' %}selected{% endif %}>Pendiente</option>
+              <option value="PG" {% if venta.estado == 'PG' %}selected{% endif %}>Pagado</option>
+              <option value="ET" {% if venta.estado == 'ET' %}selected{% endif %}>Entregado</option>
+              <option value="CN" {% if venta.estado == 'CN' %}selected{% endif %}>Cancelado</option>
+            </select>
+            <button id="guardar-estado" class="btn-primary" style="padding: 4px 8px; margin-left: 5px;">Guardar</button>
+            <button id="cancelar-estado" style="padding: 4px 8px;">Cancelar</button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Método de Pago:</span>
+        <span class="info-value">{{ venta.get_metodo_pago_display }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Usuario:</span>
+        <span class="info-value">{{ venta.usuario.username }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Fecha de Creación:</span>
+        <span class="info-value">{{ venta.fecha_creacion|date:"d/m/Y H:i" }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <h3>Productos</h3>
+    <table class="productos-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Precio Unit.</th>
+          <th>Cantidad</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for detalle in detalles %}
+        <tr>
+          <td>{{ detalle.producto.codigo }}</td>
+          <td>{{ detalle.producto.nombre }}</td>
+          <td>Bs. {{ detalle.precio_unitario }}</td>
+          <td>{{ detalle.cantidad }}</td>
+          <td>Bs. {{ detalle.subtotal }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="totales">
+      <div class="total-row">
+        <span class="total-label">Subtotal:</span>
+        <span class="total-value">Bs. {{ venta.subtotal }}</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">Descuento:</span>
+        <span class="total-value">Bs. {{ venta.descuento }}</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">Impuesto:</span>
+        <span class="total-value">Bs. {{ venta.impuesto }}</span>
+      </div>
+      <div class="total-row total-final">
+        <span class="total-label">TOTAL:</span>
+        <span class="total-value">Bs. {{ venta.total }}</span>
+      </div>
+    </div>
+  </div>
+
+  {% if venta.notas %}
+  <div class="info-section">
+    <h3>Notas</h3>
+    <p>{{ venta.notas }}</p>
+  </div>
+  {% endif %}
+
+  <div class="actions-container">
+    {% if venta.estado == 'PD' %}
+    <button id="eliminar-venta" class="btn-secondary" style="background-color: #dc3545;">Eliminar Venta</button>
+    {% else %}
+    <div></div> <!-- Espacio vacío para mantener el flexbox justificado -->
+    {% endif %}
+    <a href="{% url 'ventas:lista_ventas' %}" class="btn-secondary">Volver a la lista</a>
+  </div>
+</div>
+
+<!-- Modal para opciones de impresión -->
+<div id="print-modal" class="modal-print">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Opciones de Impresión</h3>
+      <span class="close-btn" id="close-print-modal">&times;</span>
+    </div>
+    <div class="print-options">
+      <div style="margin-bottom: 10px;">
+        <input type="radio" id="formato-ticket" name="formato" value="ticket" checked>
+        <label for="formato-ticket">Formato Ticket</label>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <input type="radio" id="formato-factura" name="formato" value="factura">
+        <label for="formato-factura">Formato Factura</label>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <input type="checkbox" id="incluir-logo" checked>
+        <label for="incluir-logo">Incluir Logo</label>
+      </div>
+    </div>
+    <button class="print-btn" id="confirmar-impresion">Imprimir</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% csrf_token %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Botones de edición de estado
+    const editarEstadoBtn = document.getElementById('editar-estado');
+    const estadoSelector = document.getElementById('estado-selector');
+    const guardarEstadoBtn = document.getElementById('guardar-estado');
+    const cancelarEstadoBtn = document.getElementById('cancelar-estado');
+    
+    if (editarEstadoBtn) {
+      editarEstadoBtn.addEventListener('click', function() {
+        editarEstadoBtn.style.display = 'none';
+        estadoSelector.style.display = 'block';
+      });
+    }
+    
+    if (cancelarEstadoBtn) {
+      cancelarEstadoBtn.addEventListener('click', function() {
+        estadoSelector.style.display = 'none';
+        editarEstadoBtn.style.display = 'inline-block';
+      });
+    }
+    
+    if (guardarEstadoBtn) {
+      guardarEstadoBtn.addEventListener('click', function() {
+        const nuevoEstado = document.getElementById('nuevo-estado').value;
+        actualizarEstadoVenta(nuevoEstado);
+      });
+    }
+    
+    // Botón de eliminar venta
+    const eliminarVentaBtn = document.getElementById('eliminar-venta');
+    if (eliminarVentaBtn) {
+      eliminarVentaBtn.addEventListener('click', function() {
+        if (confirm('¿Está seguro de eliminar esta venta? Esta acción no se puede deshacer.')) {
+          eliminarVenta();
+        }
+      });
+    }
+    
+    // Modal de impresión
+    const imprimirBtn = document.getElementById('imprimir-btn');
+    const printModal = document.getElementById('print-modal');
+    const closePrintModalBtn = document.getElementById('close-print-modal');
+    const confirmarImpresionBtn = document.getElementById('confirmar-impresion');
+    
+    if (imprimirBtn) {
+      imprimirBtn.addEventListener('click', function() {
+        printModal.classList.add('active');
+      });
+    }
+    
+    if (closePrintModalBtn) {
+      closePrintModalBtn.addEventListener('click', function() {
+        printModal.classList.remove('active');
+      });
+    }
+    
+    if (confirmarImpresionBtn) {
+      confirmarImpresionBtn.addEventListener('click', function() {
+        // Aquí se implementaría la lógica de impresión real
+        // Por ahora, simplemente mostramos un mensaje
+        alert('Documento enviado a imprimir');
+        printModal.classList.remove('active');
+        // En una implementación real, aquí se enviaría una petición al servidor
+        // para generar el PDF y mostrarlo en una nueva pestaña
+      });
+    }
+  });
+  
+  // Función para actualizar el estado de la venta
+  function actualizarEstadoVenta(nuevoEstado) {
+    // Obtener el ID de la venta de la URL
+    const urlParts = window.location.pathname.split('/');
+    const ventaId = urlParts[urlParts.length - 2]; // El penúltimo elemento es el ID
+    
+    // Preparar datos para la actualización
+    const ventaData = {
+      cliente_id: {{ venta.cliente.id }},
+      estado: nuevoEstado,
+      metodo_pago: '{{ venta.metodo_pago }}',
+      subtotal: {{ venta.subtotal }},
+      descuento: {{ venta.descuento }},
+      impuesto: {{ venta.impuesto }},
+      total: {{ venta.total }},
+      notas: '{{ venta.notas|default:"" }}'
+    };
+    
+    fetch(`/ventas/actualizar/${ventaId}/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: JSON.stringify(ventaData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Estado de la venta actualizado correctamente');
+        location.reload();
+      } else {
+        alert(data.error || 'Error al actualizar el estado de la venta');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error al procesar la solicitud');
+    });
+  }
+  
+  // Función para eliminar la venta
+  function eliminarVenta() {
+    const urlParts = window.location.pathname.split('/');
+    const ventaId = urlParts[urlParts.length - 2];
+    
+    fetch(`/ventas/eliminar/${ventaId}/`, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Venta eliminada correctamente');
+        window.location.href = '/ventas/';
+      } else {
+        alert(data.error || 'Error al eliminar la venta');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error al procesar la solicitud');
+    });
+  }
+</script>
+{% endblock %}

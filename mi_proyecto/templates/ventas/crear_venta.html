@@ -1,0 +1,556 @@
+{% extends 'base.html' %} {% block content %}
+<style>
+  .venta-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .venta-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .header-title h2 {
+    margin: 0;
+    color: #333;
+  }
+  .form-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+  .form-group {
+    flex: 1;
+    min-width: 200px;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #555;
+  }
+  .form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  .form-control:focus {
+    border-color: rgb(68, 108, 148);
+    outline: none;
+  }
+  .productos-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  .productos-table th,
+  .productos-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+  .productos-table th {
+    background-color: #f1f1f1;
+  }
+  .btn-primary {
+    background: rgb(68, 108, 148);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  .btn-primary:hover {
+    background: rgb(72, 118, 158);
+  }
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-secondary:hover {
+    background: #5a6268;
+  }
+  .btn-danger {
+    background: #dc3545;
+    color: white;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-danger:hover {
+    background: #c82333;
+  }
+  .totales {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    margin-top: 20px;
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    width: 300px;
+  }
+  .total-label {
+    font-weight: 500;
+  }
+  .total-value {
+    font-weight: bold;
+  }
+  .total-final {
+    font-size: 18px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 2px solid #ddd;
+  }
+  .producto-search {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  .search-results {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    width: 400px;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: none;
+  }
+  .search-results.active {
+    display: block;
+  }
+  .search-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+  }
+  .search-item:hover {
+    background: #f5f5f5;
+  }
+  .actions-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+  }
+</style>
+
+<div class="venta-container">
+  <div class="venta-header">
+    <div class="header-title">
+      <h2>Nueva Venta</h2>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>Datos de la Venta</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="cliente">Cliente:</label>
+        <select id="cliente" class="form-control">
+          <option value="">Seleccione un cliente</option>
+          {% for cliente in clientes %}
+          <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="estado">Estado:</label>
+        <select id="estado" class="form-control">
+          <option value="PD">Pendiente</option>
+          <option value="PG">Pagado</option>
+          <option value="ET">Entregado</option>
+          <option value="CN">Cancelado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="metodo_pago">Método de Pago:</label>
+        <select id="metodo_pago" class="form-control">
+          <option value="EF">Efectivo</option>
+          <option value="TC">Tarjeta de Crédito</option>
+          <option value="TD">Tarjeta de Débito</option>
+          <option value="TR">Transferencia</option>
+          <option value="QR">Código QR</option>
+          <option value="OT">Otro</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>Productos</h3>
+    <div class="producto-search">
+      <div class="form-group" style="position: relative; flex: 3">
+        <input
+          type="text"
+          id="producto-busqueda"
+          class="form-control"
+          placeholder="Buscar producto por código o nombre..." />
+        <div id="search-results" class="search-results"></div>
+      </div>
+      <div class="form-group" style="flex: 1">
+        <input
+          type="number"
+          id="producto-cantidad"
+          class="form-control"
+          min="1"
+          value="1"
+          placeholder="Cantidad" />
+      </div>
+      <button id="agregar-producto" class="btn-primary">Agregar</button>
+    </div>
+
+    <table id="productos-tabla" class="productos-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Precio Unit.</th>
+          <th>Cantidad</th>
+          <th>Subtotal</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Los productos se agregarán dinámicamente con JavaScript -->
+      </tbody>
+    </table>
+
+    <div class="totales">
+      <div class="total-row">
+        <span class="total-label">Subtotal:</span>
+        <span class="total-value" id="subtotal">Bs. 0.00</span>
+      </div>
+      <div class="form-row" style="justify-content: flex-end; margin-bottom: 0">
+        <div class="form-group" style="max-width: 150px">
+          <label for="descuento">Descuento (Bs):</label>
+          <input
+            type="number"
+            id="descuento"
+            class="form-control"
+            min="0"
+            step="0.01"
+            value="0" />
+        </div>
+      </div>
+      <div class="form-row" style="justify-content: flex-end; margin-bottom: 0">
+        <div class="form-group" style="max-width: 150px">
+          <label for="impuesto">Impuesto (Bs):</label>
+          <input
+            type="number"
+            id="impuesto"
+            class="form-control"
+            min="0"
+            step="0.01"
+            value="0" />
+        </div>
+      </div>
+      <div class="total-row total-final">
+        <span class="total-label">TOTAL:</span>
+        <span class="total-value" id="total">Bs. 0.00</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>Notas Adicionales</h3>
+    <textarea
+      id="notas"
+      class="form-control"
+      rows="3"
+      placeholder="Agregar notas o comentarios sobre la venta..."></textarea>
+  </div>
+
+  <div class="actions-container">
+    <a href="{% url 'ventas:lista_ventas' %}" class="btn-secondary">Cancelar</a>
+    <button id="guardar-venta" class="btn-primary">Guardar Venta</button>
+  </div>
+</div>
+{% endblock %} {% block extra_scripts %} {% csrf_token %}
+<script>
+  // Variables globales
+  let productosAgregados = [];
+  let subtotalGeneral = 0;
+  let descuento = 0;
+  let impuesto = 0;
+  let total = 0;
+
+  // Event listeners
+  document.addEventListener("DOMContentLoaded", function () {
+    // Búsqueda de productos
+    const inputBusqueda = document.getElementById("producto-busqueda");
+    const searchResults = document.getElementById("search-results");
+
+    inputBusqueda.addEventListener("input", debounce(buscarProductos, 300));
+
+    // Agregar producto
+    document
+      .getElementById("agregar-producto")
+      .addEventListener("click", agregarProductoSeleccionado);
+
+    // Calcular totales cuando cambian descuento o impuesto
+    document
+      .getElementById("descuento")
+      .addEventListener("input", calcularTotales);
+    document
+      .getElementById("impuesto")
+      .addEventListener("input", calcularTotales);
+
+    // Guardar venta
+    document
+      .getElementById("guardar-venta")
+      .addEventListener("click", guardarVenta);
+  });
+
+  // Función para buscar productos
+  function buscarProductos() {
+    const query = document.getElementById("producto-busqueda").value.trim();
+    const searchResults = document.getElementById("search-results");
+
+    if (query.length < 2) {
+      searchResults.classList.remove("active");
+      searchResults.innerHTML = "";
+      return;
+    }
+
+    fetch(`/ventas/api/buscar-producto/?q=${encodeURIComponent(query)}`)
+      .then((response) => response.json())
+      .then((data) => {
+        searchResults.innerHTML = "";
+
+        if (data.productos.length === 0) {
+          searchResults.innerHTML =
+            '<div class="search-item">No se encontraron productos</div>';
+        } else {
+          data.productos.forEach((producto) => {
+            const item = document.createElement("div");
+            item.className = "search-item";
+            item.innerHTML = `<strong>${producto.codigo}</strong> - ${producto.nombre} (Stock: ${producto.stock})`;
+            item.dataset.producto = JSON.stringify(producto);
+
+            item.addEventListener("click", function () {
+              document.getElementById(
+                "producto-busqueda"
+              ).value = `${producto.codigo} - ${producto.nombre}`;
+              document.getElementById("producto-busqueda").dataset.producto =
+                JSON.stringify(producto);
+              searchResults.classList.remove("active");
+            });
+
+            searchResults.appendChild(item);
+          });
+        }
+
+        searchResults.classList.add("active");
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+  }
+
+  // Función para agregar producto seleccionado a la tabla
+  function agregarProductoSeleccionado() {
+    const inputBusqueda = document.getElementById("producto-busqueda");
+    const inputCantidad = document.getElementById("producto-cantidad");
+    const cantidad = parseInt(inputCantidad.value);
+
+    if (!inputBusqueda.dataset.producto || cantidad < 1) {
+      alert(
+        "Por favor, seleccione un producto y especifique una cantidad válida."
+      );
+      return;
+    }
+
+    const producto = JSON.parse(inputBusqueda.dataset.producto);
+
+    // Verificar si ya existe el producto en la tabla
+    const productoExistente = productosAgregados.find(
+      (p) => p.id === producto.id
+    );
+    if (productoExistente) {
+      // Verificar si hay suficiente stock
+      if (productoExistente.cantidad + cantidad > producto.stock) {
+        alert(
+          `Stock insuficiente. Solo quedan ${producto.stock} unidades disponibles.`
+        );
+        return;
+      }
+
+      // Actualizar cantidad
+      productoExistente.cantidad += cantidad;
+      productoExistente.subtotal =
+        productoExistente.cantidad * productoExistente.precio;
+      actualizarTablaProductos();
+    } else {
+      // Verificar si hay suficiente stock
+      if (cantidad > producto.stock) {
+        alert(
+          `Stock insuficiente. Solo hay ${producto.stock} unidades disponibles.`
+        );
+        return;
+      }
+
+      // Agregar nuevo producto
+      const subtotal = cantidad * parseFloat(producto.precio);
+      const nuevoProducto = {
+        id: producto.id,
+        codigo: producto.codigo,
+        nombre: producto.nombre,
+        precio: parseFloat(producto.precio),
+        cantidad: cantidad,
+        subtotal: subtotal,
+      };
+
+      productosAgregados.push(nuevoProducto);
+      actualizarTablaProductos();
+    }
+
+    // Limpiar campos
+    inputBusqueda.value = "";
+    inputBusqueda.dataset.producto = "";
+    inputCantidad.value = 1;
+  }
+
+  // Función para actualizar la tabla de productos
+  function actualizarTablaProductos() {
+    const tbody = document.querySelector("#productos-tabla tbody");
+    tbody.innerHTML = "";
+
+    if (productosAgregados.length === 0) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td colspan="6" class="text-center">No hay productos agregados</td>';
+      tbody.appendChild(tr);
+    } else {
+      productosAgregados.forEach((producto, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${producto.codigo}</td>
+          <td>${producto.nombre}</td>
+          <td>Bs. ${producto.precio.toFixed(2)}</td>
+          <td>${producto.cantidad}</td>
+          <td>Bs. ${producto.subtotal.toFixed(2)}</td>
+          <td>
+            <button class="btn-danger" onclick="eliminarProducto(${index})">Eliminar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    calcularTotales();
+  }
+
+  // Función para eliminar un producto de la tabla
+  function eliminarProducto(index) {
+    productosAgregados.splice(index, 1);
+    actualizarTablaProductos();
+  }
+
+  // Función para calcular los totales
+  function calcularTotales() {
+    subtotalGeneral = productosAgregados.reduce(
+      (sum, producto) => sum + producto.subtotal,
+      0
+    );
+    descuento = parseFloat(document.getElementById("descuento").value) || 0;
+    impuesto = parseFloat(document.getElementById("impuesto").value) || 0;
+
+    total = subtotalGeneral - descuento + impuesto;
+
+    document.getElementById(
+      "subtotal"
+    ).textContent = `Bs. ${subtotalGeneral.toFixed(2)}`;
+    document.getElementById("total").textContent = `Bs. ${total.toFixed(2)}`;
+  }
+
+  // Función para guardar la venta
+  function guardarVenta() {
+    // Validaciones
+    const clienteId = document.getElementById("cliente").value;
+    if (!clienteId) {
+      alert("Por favor, seleccione un cliente.");
+      return;
+    }
+
+    if (productosAgregados.length === 0) {
+      alert("Debe agregar al menos un producto a la venta.");
+      return;
+    }
+
+    // Preparar datos para enviar
+    const ventaData = {
+      cliente_id: clienteId,
+      estado: document.getElementById("estado").value,
+      metodo_pago: document.getElementById("metodo_pago").value,
+      subtotal: subtotalGeneral,
+      descuento: descuento,
+      impuesto: impuesto,
+      total: total,
+      notas: document.getElementById("notas").value,
+      items: productosAgregados.map((p) => ({
+        producto_id: p.id,
+        cantidad: p.cantidad,
+        precio_unitario: p.precio,
+        subtotal: p.subtotal,
+      })),
+    };
+
+    // Enviar petición al servidor
+    fetch("/ventas/api/crear/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+          .value,
+      },
+      body: JSON.stringify(ventaData),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          alert("Venta registrada correctamente");
+          window.location.href = "/ventas/";
+        } else {
+          alert(data.error || "Error al registrar la venta");
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("Error al procesar la solicitud");
+      });
+  }
+
+  // Función debounce para no hacer muchas peticiones en la búsqueda
+  function debounce(func, wait) {
+    let timeout;
+    return function () {
+      const context = this;
+      const args = arguments;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        func.apply(context, args);
+      }, wait);
+    };
+  }
+</script>
+{% endblock %}

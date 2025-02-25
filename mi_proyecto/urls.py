@@ -33,4 +33,5 @@ urlpatterns = [
     path('eliminar-usuario/<int:usuario_id>/', views.eliminar_usuario, name='eliminar_usuario'),
     path('clientes/', include('clientes.urls', namespace='clientes')),
     path('productos/', include('productos.urls', namespace='productos')),
+    path('ventas/', include('ventas.urls', namespace='ventas')), 
 ]
