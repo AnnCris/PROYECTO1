@@ -1,6 +1,6 @@
 {% extends 'base.html' %} {% block content %}
 <style>
-  /* Estilos para el modal y formulario */
+
   .modal {
     display: none;
     position: fixed;
@@ -55,7 +55,6 @@
     color: #333;
   }
 
-  /* Estilos para el formulario dentro del modal */
   .modal form {
     display: grid;
     gap: 15px;
@@ -102,13 +101,13 @@
     background-color: white;
   }
 
-  /* Estilo para checkbox */
+
   .modal .form-check-input {
     width: auto;
     margin-right: 8px;
   }
 
-  /* Botón de guardar */
+
   .modal .btn-primary {
     width: 100%;
     padding: 12px;
@@ -126,7 +125,7 @@
     background: rgb(72, 118, 158);
   }
 
-  /* Mensajes de error */
+
   .modal .errorlist {
     color: #dc3545;
     list-style: none;
@@ -135,15 +134,6 @@
     font-size: 0.875rem;
   }
 
-  /* Responsive */
-  @media (max-width: 768px) {
-    .modal-content {
-      width: 95%;
-      padding: 20px;
-    }
-  }
-
-  /* Estilos para los botones de acción */
   .action-btn {
     padding: 6px 12px;
     border-radius: 4px;
@@ -172,7 +162,7 @@
     background-color: #c82333;
   }
 
-  /* Estilos para el badge de estado */
+
   .status-badge {
     padding: 4px 8px;
     border-radius: 12px;
@@ -255,7 +245,6 @@
   </table>
 </div>
 
-<!-- Modal para crear/editar producto -->
 <div id="productoModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -286,7 +275,7 @@
     const form = event.target;
     const productoId = form.dataset.productoId;
 
-    // Recoger todos los datos del formulario
+
     const formData = new FormData(form);
     const datos = {};
     for (let [key, value] of formData.entries()) {

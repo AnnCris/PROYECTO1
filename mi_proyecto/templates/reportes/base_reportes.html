@@ -1,0 +1,24 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="reportes-container">
+  <h1>{% block titulo_reporte %}Sistema de Reportes{% endblock %}</h1>
+
+  <div class="reportes-menu">
+    <a href="{% url 'reportes:ventas' %}" class="report-link {% if seccion == 'ventas' %}active{% endif %}">
+      Reporte de Ventas
+    </a>
+    <a href="{% url 'reportes:inventario' %}" class="report-link {% if seccion == 'inventario' %}active{% endif %}">
+      Reporte de Inventario
+    </a>
+    <a href="{% url 'reportes:clientes' %}" class="report-link {% if seccion == 'clientes' %}active{% endif %}">
+      Reporte de Clientes
+    </a>
+  </div>
+
+  <div class="reportes-content">
+    {% block reportes_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

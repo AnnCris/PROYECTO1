@@ -19,14 +19,14 @@ def login_view(request):
         username_or_email = request.POST.get('username')
         password = request.POST.get('password')
         
-        # Primero intentamos encontrar al usuario por email
+
         try:
             user = User.objects.get(email=username_or_email)
             username = user.username
         except User.DoesNotExist:
             username = username_or_email
             
-        # Intentamos la autenticación
+
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
@@ -79,11 +79,83 @@ def gestionar_usuarios(request):
 
 @login_required
 def inicio_view(request):
-    if request.user.es_administrador():
-        return render(request, 'usuarios/inicio.html')
-    elif request.user.es_empleado():
-        return render(request, 'usuarios/dashboard_empleado.html')
+    from datetime import datetime, timedelta
+    from django.db.models import Sum, Count, Q, F  
+    from django.utils import timezone
+    from ventas.models import Venta
+    from productos.models import Producto
+    from clientes.models import Cliente
+
+    hoy = timezone.now().date()
+    inicio_del_dia = datetime.combine(hoy, datetime.min.time())
+    fin_del_dia = datetime.combine(hoy, datetime.max.time())
     
+
+    inicio_del_mes = datetime(hoy.year, hoy.month, 1, 0, 0, 0)
+
+    if hoy.month == 12:
+        fin_del_mes = datetime(hoy.year + 1, 1, 1, 0, 0, 0) - timedelta(days=1)
+    else:
+        fin_del_mes = datetime(hoy.year, hoy.month + 1, 1, 0, 0, 0) - timedelta(days=1)
+    fin_del_mes = datetime.combine(fin_del_mes.date(), datetime.max.time())
+    
+
+    stats = {
+
+        'ventas_dia': Venta.objects.filter(
+            fecha__gte=inicio_del_dia,
+            fecha__lte=fin_del_dia
+        ).aggregate(total=Sum('total'))['total'] or 0,
+        
+
+        'ventas_mes': Venta.objects.filter(
+            fecha__gte=inicio_del_mes,
+            fecha__lte=fin_del_mes
+        ).aggregate(total=Sum('total'))['total'] or 0,
+        
+
+        'total_productos': Producto.objects.filter(activo=True).count(),
+        
+        'clientes_activos': Cliente.objects.filter(activo=True).count(),
+        
+        'productos_stock_bajo': Producto.objects.filter(
+            activo=True,
+            stock__lte=F('stock_minimo')
+        ).count(),
+        
+
+        'ventas_pendientes': Venta.objects.filter(estado='PD').count()
+    }
+    
+
+    ventas_recientes = Venta.objects.select_related('cliente').order_by('-fecha')[:10]
+    
+
+    ventas_tabla = []
+    for venta in ventas_recientes:
+        primer_producto = venta.detalles.select_related('producto').first()
+        producto_nombre = primer_producto.producto.nombre if primer_producto else "Múltiples productos"
+        
+        ventas_tabla.append({
+            'id': venta.id,
+            'cliente': f"{venta.cliente.nombres} {venta.cliente.apellidos}",
+            'producto': producto_nombre,
+            'fecha': venta.fecha,
+            'monto': venta.total,
+            'estado': venta.get_estado_display()
+        })
+    
+    context = {
+        'stats': stats,
+        'ventas_recientes': ventas_tabla,
+        'now': timezone.now() 
+    }
+    
+    if request.user.es_administrador():
+        return render(request, 'usuarios/inicio.html', context)
+    elif request.user.es_empleado():
+        return render(request, 'usuarios/dashboard_empleado.html', context)
+
 def logout_view(request):
     logout(request)
     return redirect('login')
@@ -102,16 +174,16 @@ def gestionar_usuarios(request):
         'form': form
     })
 
-# usuarios/views.py
+
 @login_required
 @rol_requerido(['Administrador'])
 @require_http_methods(["POST"])
 def crear_usuario(request):
     try:
-        # Obtener los datos del cuerpo de la petición
+
         data = json.loads(request.body)
         
-        # Crear el diccionario de datos para el formulario
+
         form_data = {
             'username': data.get('username'),
             'email': data.get('email'),
@@ -124,7 +196,7 @@ def crear_usuario(request):
         form = RegistroForm(form_data)
         if form.is_valid():
             usuario = form.save(commit=False)
-            usuario.rol_id = form_data['rol']  # Asignar el rol directamente por ID
+            usuario.rol_id = form_data['rol']  
             usuario.is_active = form_data['is_active']
             usuario.save()
             
@@ -139,7 +211,7 @@ def crear_usuario(request):
                 }
             })
         else:
-            # Devolver errores de validación específicos
+
             errores = {}
             for field, error_list in form.errors.items():
                 errores[field] = list(error_list)
@@ -157,7 +229,6 @@ def actualizar_usuario(request, usuario_id):
     import json
     usuario = get_object_or_404(UsuarioPersonalizado, id=usuario_id)
     
-    # Con PUT, los datos vienen en request.body como JSON
     try:
         datos = json.loads(request.body)
         username = datos.get('username')
@@ -165,13 +236,12 @@ def actualizar_usuario(request, usuario_id):
         rol_id = datos.get('rol_id')
         is_active = datos.get('is_active')
         
-        # Validar datos únicos
+
         if UsuarioPersonalizado.objects.exclude(id=usuario_id).filter(username=username).exists():
             return JsonResponse({'error': 'El nombre de usuario ya existe'}, status=400)
         if UsuarioPersonalizado.objects.exclude(id=usuario_id).filter(email=email).exists():
             return JsonResponse({'error': 'El email ya existe'}, status=400)
-        
-        # Actualizar solo si los campos están presentes
+
         if username:
             usuario.username = username
         if email:
@@ -211,3 +281,93 @@ def eliminar_usuario(request, usuario_id):
         return JsonResponse({'message': 'Usuario eliminado exitosamente'})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def dashboard_empleado(request):
+    from datetime import datetime, timedelta
+    from django.db.models import Sum, Count, F, Q
+    from django.utils import timezone
+    from ventas.models import Venta
+    from productos.models import Producto
+    from clientes.models import Cliente
+    
+    # Obtener fecha actual y comienzo del mes
+    hoy = timezone.now().date()
+    inicio_del_dia = datetime.combine(hoy, datetime.min.time())
+    fin_del_dia = datetime.combine(hoy, datetime.max.time())
+    
+    # Para el mes actual
+    inicio_del_mes = datetime(hoy.year, hoy.month, 1, 0, 0, 0)
+    # Último día del mes
+    if hoy.month == 12:
+        fin_del_mes = datetime(hoy.year + 1, 1, 1, 0, 0, 0) - timedelta(days=1)
+    else:
+        fin_del_mes = datetime(hoy.year, hoy.month + 1, 1, 0, 0, 0) - timedelta(days=1)
+    fin_del_mes = datetime.combine(fin_del_mes.date(), datetime.max.time())
+    
+    # Estadísticas para el dashboard
+    stats = {
+        # Ventas del día
+        'ventas_dia': Venta.objects.filter(
+            fecha__gte=inicio_del_dia,
+            fecha__lte=fin_del_dia
+        ).aggregate(total=Sum('total'))['total'] or 0,
+        
+        # Ventas del mes
+        'ventas_mes': Venta.objects.filter(
+            fecha__gte=inicio_del_mes,
+            fecha__lte=fin_del_mes
+        ).aggregate(total=Sum('total'))['total'] or 0,
+        
+        # Total de productos
+        'total_productos': Producto.objects.filter(activo=True).count(),
+        
+        # Clientes activos
+        'clientes_activos': Cliente.objects.filter(activo=True).count(),
+        
+        # Productos con stock bajo
+        'productos_stock_bajo': Producto.objects.filter(
+            activo=True,
+            stock__lte=F('stock_minimo')
+        ).count(),
+    }
+    
+    # Obtener ventas recientes
+    ventas_recientes = Venta.objects.select_related('cliente').order_by('-fecha')[:10]
+    
+    # Preparar datos para mostrar en la tabla
+    ventas_tabla = []
+    for venta in ventas_recientes:
+        # Obtener el primer producto de la venta como muestra
+        primer_producto = venta.detalles.select_related('producto').first()
+        producto_nombre = primer_producto.producto.nombre if primer_producto else "Múltiples productos"
+        
+        ventas_tabla.append({
+            'id': venta.id,
+            'cliente': f"{venta.cliente.nombres} {venta.cliente.apellidos}",
+            'producto': producto_nombre,
+            'fecha': venta.fecha,
+            'monto': venta.total,
+            'estado': venta.estado,
+            'get_estado_display': venta.get_estado_display()
+        })
+    
+    # Obtener productos con stock bajo
+    productos_stock_bajo = Producto.objects.filter(
+        activo=True,
+        stock__lte=F('stock_minimo')
+    ).order_by('stock')[:5]
+    
+    # Obtener últimos clientes registrados
+    ultimos_clientes = Cliente.objects.filter(activo=True).order_by('-fecha_registro')[:5]
+    
+    context = {
+        'stats': stats,
+        'ventas_recientes': ventas_tabla,
+        'productos_stock_bajo': productos_stock_bajo,
+        'ultimos_clientes': ultimos_clientes,
+        'now': timezone.now(),
+    }
+    
+    return render(request, 'usuarios/dashboard_empleado.html', context)

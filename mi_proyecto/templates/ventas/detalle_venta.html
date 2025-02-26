@@ -312,13 +312,12 @@
     {% if venta.estado == 'PD' %}
     <button id="eliminar-venta" class="btn-secondary" style="background-color: #dc3545;">Eliminar Venta</button>
     {% else %}
-    <div></div> <!-- Espacio vacío para mantener el flexbox justificado -->
+    <div></div>
     {% endif %}
     <a href="{% url 'ventas:lista_ventas' %}" class="btn-secondary">Volver a la lista</a>
   </div>
 </div>
 
-<!-- Modal para opciones de impresión -->
 <div id="print-modal" class="modal-print">
   <div class="modal-content">
     <div class="modal-header">
@@ -348,7 +347,7 @@
 {% csrf_token %}
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Botones de edición de estado
+
     const editarEstadoBtn = document.getElementById('editar-estado');
     const estadoSelector = document.getElementById('estado-selector');
     const guardarEstadoBtn = document.getElementById('guardar-estado');
@@ -375,7 +374,7 @@
       });
     }
     
-    // Botón de eliminar venta
+
     const eliminarVentaBtn = document.getElementById('eliminar-venta');
     if (eliminarVentaBtn) {
       eliminarVentaBtn.addEventListener('click', function() {
@@ -384,9 +383,7 @@
         }
       });
     }
-    
-    // Modal de impresión
-    const imprimirBtn = document.getElementById('imprimir-btn');
+        const imprimirBtn = document.getElementById('imprimir-btn');
     const printModal = document.getElementById('print-modal');
     const closePrintModalBtn = document.getElementById('close-print-modal');
     const confirmarImpresionBtn = document.getElementById('confirmar-impresion');
@@ -405,23 +402,21 @@
     
     if (confirmarImpresionBtn) {
       confirmarImpresionBtn.addEventListener('click', function() {
-        // Aquí se implementaría la lógica de impresión real
-        // Por ahora, simplemente mostramos un mensaje
+
         alert('Documento enviado a imprimir');
         printModal.classList.remove('active');
-        // En una implementación real, aquí se enviaría una petición al servidor
-        // para generar el PDF y mostrarlo en una nueva pestaña
+
       });
     }
   });
   
-  // Función para actualizar el estado de la venta
+
   function actualizarEstadoVenta(nuevoEstado) {
-    // Obtener el ID de la venta de la URL
+
     const urlParts = window.location.pathname.split('/');
-    const ventaId = urlParts[urlParts.length - 2]; // El penúltimo elemento es el ID
+    const ventaId = urlParts[urlParts.length - 2]; 
     
-    // Preparar datos para la actualización
+
     const ventaData = {
       cliente_id: {{ venta.cliente.id }},
       estado: nuevoEstado,
@@ -456,7 +451,7 @@
     });
   }
   
-  // Función para eliminar la venta
+
   function eliminarVenta() {
     const urlParts = window.location.pathname.split('/');
     const ventaId = urlParts[urlParts.length - 2];

@@ -6,7 +6,7 @@
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
       rel="stylesheet" />
     <style>
-      /* Copiar los estilos del dashboard */
+
       * {
         margin: 0;
         padding: 0;
@@ -82,7 +82,7 @@
         text-decoration: none;
         transition: all 0.3s;
       }
-      /* Estilos específicos para la gestión de clientes */
+
       .clientes-container {
         background: white;
         padding: 20px;
@@ -131,7 +131,7 @@
         color: #721c24;
       }
 
-      /* Estilos para la tabla */
+
       .user-table {
         width: 100%;
         background: white;
@@ -158,7 +158,6 @@
         color: #333;
       }
 
-      /* Estilos para botones de acción */
       .action-btn {
         padding: 6px 12px;
         border-radius: 4px;
@@ -177,7 +176,7 @@
         color: white;
       }
 
-      /* Estilos para el modal */
+
       .modal {
         display: none;
         position: fixed;
@@ -214,7 +213,7 @@
         font-size: 24px;
       }
 
-      /* Estilos para el botón principal */
+
       .btn-primary {
         background: rgb(68, 108, 148);
         color: white;
@@ -225,7 +224,7 @@
         margin-bottom: 20px;
       }
 
-      /* Estilos para mensajes */
+
       .messages {
         margin-bottom: 20px;
       }
@@ -246,7 +245,6 @@
         color: #721c24;
       }
 
-      /* Estilos para el formulario */
       .form-row {
         margin-bottom: 15px;
       }
@@ -280,13 +278,13 @@
         background: rgb(72, 118, 158);
       }
 
-      /* Estilos para los enlaces activos */
+
       .nav-item a.active {
         color: #fff;
         font-weight: bold;
       }
 
-      /* Color para los textos del sidebar */
+
       .sidebar-header h2,
       .nav-item a {
         color: white;
@@ -295,7 +293,7 @@
   </head>
   <body>
     <div class="dashboard">
-      <!-- Sidebar -->
+
       <div class="sidebar">
         <div class="sidebar-header">
           <h2>Sistema de Ventas</h2>
@@ -320,7 +318,7 @@
         </ul>
       </div>
 
-      <!-- Main Content -->
+
       <div class="main-content">
         <div class="top-bar">
           <div class="user-info">
@@ -387,7 +385,7 @@
       </div>
     </div>
 
-    <!-- Modal para crear/editar cliente -->
+
     <div id="clienteModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
@@ -403,7 +401,7 @@
     </div>
 
     <script>
-      // Funciones JavaScript para manejar el CRUD
+
       function mostrarModalCrear() {
         document.getElementById("modalTitle").textContent = "Nuevo Cliente";
         document.getElementById("clienteForm").reset();
@@ -425,7 +423,7 @@
             : "/clientes/crear/";
 
           if (clienteId) {
-            // Si es actualización, enviar como JSON
+
             const formData = new FormData(form);
             const datos = {};
             formData.forEach((value, key) => {
@@ -458,7 +456,7 @@
               }
             }
           } else {
-            // Si es creación, mantener FormData
+
             const formData = new FormData(form);
             const response = await fetch(url, {
               method: "POST",
@@ -518,7 +516,6 @@
           const form = document.getElementById("clienteForm");
           form.dataset.clienteId = clienteId;
 
-          // Actualizar cada campo del formulario
           for (const [key, value] of Object.entries(cliente)) {
             const input = form.querySelector(`[name="${key}"]`);
             if (input) {

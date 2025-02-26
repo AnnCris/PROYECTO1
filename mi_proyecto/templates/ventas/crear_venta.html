@@ -1,4 +1,6 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block content %}
 <style>
   .venta-container {
     max-width: 1200px;
@@ -80,6 +82,8 @@
     padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
   }
   .btn-secondary:hover {
     background: #5a6268;
@@ -133,7 +137,7 @@
     overflow-y: auto;
     border: 1px solid #ddd;
     border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     display: none;
   }
   .search-results.active {
@@ -152,6 +156,67 @@
     justify-content: space-between;
     margin-top: 30px;
   }
+  .cliente-search {
+    position: relative;
+    margin-bottom: 15px;
+  }
+  .cliente-info {
+    display: none;
+    background: #e9f5ff;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+  }
+  .cliente-info.active {
+    display: block;
+  }
+  .info-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 5px;
+  }
+  .info-item {
+    display: flex;
+    flex-direction: column;
+  }
+  .info-label {
+    font-size: 12px;
+    color: #666;
+  }
+  .info-value {
+    font-weight: 500;
+  }
+  .productos-categorias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  .categoria-btn {
+    background: #f1f1f1;
+    border: 1px solid #ddd;
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .categoria-btn:hover {
+    background: #e1e1e1;
+  }
+  .categoria-btn.active {
+    background: rgb(68, 108, 148);
+    color: white;
+    border-color: rgb(68, 108, 148);
+  }
+  .alert-stock {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    border-left: 4px solid #ffc107;
+    font-size: 14px;
+  }
 </style>
 
 <div class="venta-container">
@@ -162,17 +227,37 @@
   </div>
 
   <div class="form-section">
-    <h3>Datos de la Venta</h3>
-    <div class="form-row">
-      <div class="form-group">
-        <label for="cliente">Cliente:</label>
-        <select id="cliente" class="form-control">
-          <option value="">Seleccione un cliente</option>
-          {% for cliente in clientes %}
-          <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
-          {% endfor %}
-        </select>
+    <h3>Datos del Cliente</h3>
+    <div class="cliente-search">
+      <div class="form-row">
+        <div class="form-group" style="position: relative; flex: 3;">
+          <label for="cliente-busqueda">Buscar Cliente:</label>
+          <input type="text" id="cliente-busqueda" class="form-control" placeholder="Buscar por nombre o documento...">
+          <div id="cliente-search-results" class="search-results"></div>
+        </div>
+        <div class="form-group" style="display: flex; align-items: flex-end;">
+          <button id="seleccionar-cliente" class="btn-primary">Seleccionar</button>
+        </div>
       </div>
+      <div id="cliente-info" class="cliente-info">
+        <div class="info-row">
+          <div class="info-item">
+            <span class="info-label">Nombre completo:</span>
+            <span class="info-value" id="cliente-nombre"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Documento:</span>
+            <span class="info-value" id="cliente-documento"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Teléfono:</span>
+            <span class="info-value" id="cliente-telefono"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
       <div class="form-group">
         <label for="estado">Estado:</label>
         <select id="estado" class="form-control">
@@ -198,23 +283,27 @@
 
   <div class="form-section">
     <h3>Productos</h3>
+    
+    {% if productos_stock_bajo %}
+    <div class="alert-stock">
+      ⚠️ Hay {{ productos_stock_bajo|length }} productos con stock bajo. Considere realizar un pedido pronto.
+    </div>
+    {% endif %}
+
+    <div class="productos-categorias">
+      <button class="categoria-btn active" data-categoria="todas">Todas</button>
+      {% for categoria, productos_cat in productos_por_categoria.items %}
+      <button class="categoria-btn" data-categoria="{{ categoria }}">{{ categoria }} ({{ productos_cat|length }})</button>
+      {% endfor %}
+    </div>
+    
     <div class="producto-search">
-      <div class="form-group" style="position: relative; flex: 3">
-        <input
-          type="text"
-          id="producto-busqueda"
-          class="form-control"
-          placeholder="Buscar producto por código o nombre..." />
+      <div class="form-group" style="position: relative; flex: 3;">
+        <input type="text" id="producto-busqueda" class="form-control" placeholder="Buscar producto por código o nombre...">
         <div id="search-results" class="search-results"></div>
       </div>
-      <div class="form-group" style="flex: 1">
-        <input
-          type="number"
-          id="producto-cantidad"
-          class="form-control"
-          min="1"
-          value="1"
-          placeholder="Cantidad" />
+      <div class="form-group" style="flex: 1;">
+        <input type="number" id="producto-cantidad" class="form-control" min="1" value="1" placeholder="Cantidad">
       </div>
       <button id="agregar-producto" class="btn-primary">Agregar</button>
     </div>
@@ -232,6 +321,9 @@
       </thead>
       <tbody>
         <!-- Los productos se agregarán dinámicamente con JavaScript -->
+        <tr id="no-productos">
+          <td colspan="6" class="text-center">No hay productos agregados</td>
+        </tr>
       </tbody>
     </table>
 
@@ -240,28 +332,24 @@
         <span class="total-label">Subtotal:</span>
         <span class="total-value" id="subtotal">Bs. 0.00</span>
       </div>
-      <div class="form-row" style="justify-content: flex-end; margin-bottom: 0">
-        <div class="form-group" style="max-width: 150px">
+      <div class="form-row" style="justify-content: flex-end; margin-bottom: 0;">
+        <div class="form-group" style="max-width: 150px;">
+          <label for="descuento_porcentaje">Descuento (%):</label>
+          <input type="number" id="descuento_porcentaje" class="form-control" min="0" max="100" step="0.1" value="0">
+        </div>
+        <div class="form-group" style="max-width: 150px;">
           <label for="descuento">Descuento (Bs):</label>
-          <input
-            type="number"
-            id="descuento"
-            class="form-control"
-            min="0"
-            step="0.01"
-            value="0" />
+          <input type="number" id="descuento" class="form-control" min="0" step="0.01" value="0" readonly>
         </div>
       </div>
-      <div class="form-row" style="justify-content: flex-end; margin-bottom: 0">
-        <div class="form-group" style="max-width: 150px">
+      <div class="form-row" style="justify-content: flex-end; margin-bottom: 0;">
+        <div class="form-group" style="max-width: 150px;">
+          <label for="impuesto_porcentaje">Impuesto (%):</label>
+          <input type="number" id="impuesto_porcentaje" class="form-control" min="0" max="100" step="0.1" value="13">
+        </div>
+        <div class="form-group" style="max-width: 150px;">
           <label for="impuesto">Impuesto (Bs):</label>
-          <input
-            type="number"
-            id="impuesto"
-            class="form-control"
-            min="0"
-            step="0.01"
-            value="0" />
+          <input type="number" id="impuesto" class="form-control" min="0" step="0.01" value="0" readonly>
         </div>
       </div>
       <div class="total-row total-final">
@@ -273,11 +361,7 @@
 
   <div class="form-section">
     <h3>Notas Adicionales</h3>
-    <textarea
-      id="notas"
-      class="form-control"
-      rows="3"
-      placeholder="Agregar notas o comentarios sobre la venta..."></textarea>
+    <textarea id="notas" class="form-control" rows="3" placeholder="Agregar notas o comentarios sobre la venta..."></textarea>
   </div>
 
   <div class="actions-container">
@@ -285,131 +369,202 @@
     <button id="guardar-venta" class="btn-primary">Guardar Venta</button>
   </div>
 </div>
-{% endblock %} {% block extra_scripts %} {% csrf_token %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% csrf_token %}
 <script>
   // Variables globales
   let productosAgregados = [];
+  let clienteSeleccionado = null;
   let subtotalGeneral = 0;
   let descuento = 0;
   let impuesto = 0;
   let total = 0;
-
+  
   // Event listeners
-  document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener('DOMContentLoaded', function() {
     // Búsqueda de productos
-    const inputBusqueda = document.getElementById("producto-busqueda");
-    const searchResults = document.getElementById("search-results");
-
-    inputBusqueda.addEventListener("input", debounce(buscarProductos, 300));
-
+    const inputBusqueda = document.getElementById('producto-busqueda');
+    const searchResults = document.getElementById('search-results');
+    
+    inputBusqueda.addEventListener('input', debounce(buscarProductos, 300));
+    
+    // Búsqueda de clientes
+    const inputClienteBusqueda = document.getElementById('cliente-busqueda');
+    const clienteSearchResults = document.getElementById('cliente-search-results');
+    
+    inputClienteBusqueda.addEventListener('input', debounce(buscarClientes, 300));
+    
+    // Filtro por categorías
+    const categoriasBtns = document.querySelectorAll('.categoria-btn');
+    categoriasBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        categoriasBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const categoria = this.dataset.categoria;
+        filtrarProductosPorCategoria(categoria);
+      });
+    });
+    
     // Agregar producto
-    document
-      .getElementById("agregar-producto")
-      .addEventListener("click", agregarProductoSeleccionado);
-
-    // Calcular totales cuando cambian descuento o impuesto
-    document
-      .getElementById("descuento")
-      .addEventListener("input", calcularTotales);
-    document
-      .getElementById("impuesto")
-      .addEventListener("input", calcularTotales);
-
+    document.getElementById('agregar-producto').addEventListener('click', agregarProductoSeleccionado);
+    
+    // Seleccionar cliente
+    document.getElementById('seleccionar-cliente').addEventListener('click', seleccionarCliente);
+    
+    // Calcular totales cuando cambian porcentajes de descuento o impuesto
+    document.getElementById('descuento_porcentaje').addEventListener('input', calcularTotales);
+    document.getElementById('impuesto_porcentaje').addEventListener('input', calcularTotales);
+    
     // Guardar venta
-    document
-      .getElementById("guardar-venta")
-      .addEventListener("click", guardarVenta);
+    document.getElementById('guardar-venta').addEventListener('click', guardarVenta);
   });
-
+  
   // Función para buscar productos
   function buscarProductos() {
-    const query = document.getElementById("producto-busqueda").value.trim();
-    const searchResults = document.getElementById("search-results");
-
+    const query = document.getElementById('producto-busqueda').value.trim();
+    const searchResults = document.getElementById('search-results');
+    
     if (query.length < 2) {
-      searchResults.classList.remove("active");
-      searchResults.innerHTML = "";
+      searchResults.classList.remove('active');
+      searchResults.innerHTML = '';
       return;
     }
-
-    fetch(`/ventas/api/buscar-producto/?q=${encodeURIComponent(query)}`)
-      .then((response) => response.json())
-      .then((data) => {
-        searchResults.innerHTML = "";
-
+    
+    fetch(`/ventas/buscar-producto/?q=${encodeURIComponent(query)}`)
+      .then(response => response.json())
+      .then(data => {
+        searchResults.innerHTML = '';
+        
         if (data.productos.length === 0) {
-          searchResults.innerHTML =
-            '<div class="search-item">No se encontraron productos</div>';
+          searchResults.innerHTML = '<div class="search-item">No se encontraron productos</div>';
         } else {
-          data.productos.forEach((producto) => {
-            const item = document.createElement("div");
-            item.className = "search-item";
+          data.productos.forEach(producto => {
+            const item = document.createElement('div');
+            item.className = 'search-item';
             item.innerHTML = `<strong>${producto.codigo}</strong> - ${producto.nombre} (Stock: ${producto.stock})`;
             item.dataset.producto = JSON.stringify(producto);
-
-            item.addEventListener("click", function () {
-              document.getElementById(
-                "producto-busqueda"
-              ).value = `${producto.codigo} - ${producto.nombre}`;
-              document.getElementById("producto-busqueda").dataset.producto =
-                JSON.stringify(producto);
-              searchResults.classList.remove("active");
+            
+            item.addEventListener('click', function() {
+              document.getElementById('producto-busqueda').value = `${producto.codigo} - ${producto.nombre}`;
+              document.getElementById('producto-busqueda').dataset.producto = JSON.stringify(producto);
+              searchResults.classList.remove('active');
             });
-
+            
             searchResults.appendChild(item);
           });
         }
-
-        searchResults.classList.add("active");
+        
+        searchResults.classList.add('active');
       })
-      .catch((error) => {
-        console.error("Error:", error);
+      .catch(error => {
+        console.error('Error:', error);
       });
   }
-
-  // Función para agregar producto seleccionado a la tabla
-  function agregarProductoSeleccionado() {
-    const inputBusqueda = document.getElementById("producto-busqueda");
-    const inputCantidad = document.getElementById("producto-cantidad");
-    const cantidad = parseInt(inputCantidad.value);
-
-    if (!inputBusqueda.dataset.producto || cantidad < 1) {
-      alert(
-        "Por favor, seleccione un producto y especifique una cantidad válida."
-      );
+  
+  // Función para buscar clientes
+  function buscarClientes() {
+    const query = document.getElementById('cliente-busqueda').value.trim();
+    const clienteSearchResults = document.getElementById('cliente-search-results');
+    
+    if (query.length < 2) {
+      clienteSearchResults.classList.remove('active');
+      clienteSearchResults.innerHTML = '';
       return;
     }
+    
+    fetch(`/ventas/buscar-cliente/?q=${encodeURIComponent(query)}`)
+      .then(response => response.json())
+      .then(data => {
+        clienteSearchResults.innerHTML = '';
+        
+        if (data.clientes.length === 0) {
+          clienteSearchResults.innerHTML = '<div class="search-item">No se encontraron clientes</div>';
+        } else {
+          data.clientes.forEach(cliente => {
+            const item = document.createElement('div');
+            item.className = 'search-item';
+            item.innerHTML = `<strong>${cliente.nombre}</strong> - ${cliente.documento}`;
+            item.dataset.cliente = JSON.stringify(cliente);
+            
+            item.addEventListener('click', function() {
+              document.getElementById('cliente-busqueda').value = cliente.nombre;
+              document.getElementById('cliente-busqueda').dataset.cliente = JSON.stringify(cliente);
+              clienteSearchResults.classList.remove('active');
+            });
+            
+            clienteSearchResults.appendChild(item);
+          });
+        }
+        
+        clienteSearchResults.classList.add('active');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  }
+  
+  // Función para seleccionar cliente
+  function seleccionarCliente() {
+    const inputClienteBusqueda = document.getElementById('cliente-busqueda');
+    const clienteInfo = document.getElementById('cliente-info');
+    
+    if (!inputClienteBusqueda.dataset.cliente) {
+      alert('Por favor, seleccione un cliente de la lista de búsqueda.');
+      return;
+    }
+    
+    clienteSeleccionado = JSON.parse(inputClienteBusqueda.dataset.cliente);
+    
+    // Mostrar información del cliente
+    document.getElementById('cliente-nombre').textContent = clienteSeleccionado.nombre;
+    document.getElementById('cliente-documento').textContent = clienteSeleccionado.documento;
+    document.getElementById('cliente-telefono').textContent = clienteSeleccionado.telefono;
+    
+    clienteInfo.classList.add('active');
+  }
+  
 
+  function filtrarProductosPorCategoria(categoria) {
+
+    console.log('Filtrar productos por categoría:', categoria);
+  }
+  
+
+  function agregarProductoSeleccionado() {
+    const inputBusqueda = document.getElementById('producto-busqueda');
+    const inputCantidad = document.getElementById('producto-cantidad');
+    const cantidad = parseInt(inputCantidad.value);
+    
+    if (!inputBusqueda.dataset.producto || cantidad < 1) {
+      alert('Por favor, seleccione un producto y especifique una cantidad válida.');
+      return;
+    }
+    
     const producto = JSON.parse(inputBusqueda.dataset.producto);
+    
 
-    // Verificar si ya existe el producto en la tabla
-    const productoExistente = productosAgregados.find(
-      (p) => p.id === producto.id
-    );
+    const productoExistente = productosAgregados.find(p => p.id === producto.id);
     if (productoExistente) {
-      // Verificar si hay suficiente stock
+
       if (productoExistente.cantidad + cantidad > producto.stock) {
-        alert(
-          `Stock insuficiente. Solo quedan ${producto.stock} unidades disponibles.`
-        );
+        alert(`Stock insuficiente. Solo quedan ${producto.stock} unidades disponibles.`);
         return;
       }
+      
 
-      // Actualizar cantidad
       productoExistente.cantidad += cantidad;
-      productoExistente.subtotal =
-        productoExistente.cantidad * productoExistente.precio;
+      productoExistente.subtotal = productoExistente.cantidad * productoExistente.precio;
       actualizarTablaProductos();
     } else {
-      // Verificar si hay suficiente stock
+
       if (cantidad > producto.stock) {
-        alert(
-          `Stock insuficiente. Solo hay ${producto.stock} unidades disponibles.`
-        );
+        alert(`Stock insuficiente. Solo hay ${producto.stock} unidades disponibles.`);
         return;
       }
+      
 
-      // Agregar nuevo producto
       const subtotal = cantidad * parseFloat(producto.precio);
       const nuevoProducto = {
         id: producto.id,
@@ -417,32 +572,32 @@
         nombre: producto.nombre,
         precio: parseFloat(producto.precio),
         cantidad: cantidad,
-        subtotal: subtotal,
+        subtotal: subtotal
       };
-
+      
       productosAgregados.push(nuevoProducto);
       actualizarTablaProductos();
     }
+    
 
-    // Limpiar campos
-    inputBusqueda.value = "";
-    inputBusqueda.dataset.producto = "";
+    inputBusqueda.value = '';
+    inputBusqueda.dataset.producto = '';
     inputCantidad.value = 1;
   }
+  
 
-  // Función para actualizar la tabla de productos
   function actualizarTablaProductos() {
-    const tbody = document.querySelector("#productos-tabla tbody");
-    tbody.innerHTML = "";
-
+    const tbody = document.querySelector('#productos-tabla tbody');
+    tbody.innerHTML = '';
+    
     if (productosAgregados.length === 0) {
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        '<td colspan="6" class="text-center">No hay productos agregados</td>';
+      const tr = document.createElement('tr');
+      tr.id = 'no-productos';
+      tr.innerHTML = '<td colspan="6" class="text-center">No hay productos agregados</td>';
       tbody.appendChild(tr);
     } else {
       productosAgregados.forEach((producto, index) => {
-        const tr = document.createElement("tr");
+        const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${producto.codigo}</td>
           <td>${producto.nombre}</td>
@@ -456,94 +611,96 @@
         tbody.appendChild(tr);
       });
     }
-
+    
     calcularTotales();
   }
+  
 
-  // Función para eliminar un producto de la tabla
   function eliminarProducto(index) {
     productosAgregados.splice(index, 1);
     actualizarTablaProductos();
   }
+  
 
-  // Función para calcular los totales
   function calcularTotales() {
-    subtotalGeneral = productosAgregados.reduce(
-      (sum, producto) => sum + producto.subtotal,
-      0
-    );
-    descuento = parseFloat(document.getElementById("descuento").value) || 0;
-    impuesto = parseFloat(document.getElementById("impuesto").value) || 0;
+    subtotalGeneral = productosAgregados.reduce((sum, producto) => sum + producto.subtotal, 0);
+    
 
-    total = subtotalGeneral - descuento + impuesto;
+    const descuentoPorcentaje = parseFloat(document.getElementById('descuento_porcentaje').value) || 0;
+    descuento = (subtotalGeneral * descuentoPorcentaje / 100).toFixed(2);
+    document.getElementById('descuento').value = descuento;
+    
 
-    document.getElementById(
-      "subtotal"
-    ).textContent = `Bs. ${subtotalGeneral.toFixed(2)}`;
-    document.getElementById("total").textContent = `Bs. ${total.toFixed(2)}`;
+    const montoImponible = subtotalGeneral - descuento;
+    const impuestoPorcentaje = parseFloat(document.getElementById('impuesto_porcentaje').value) || 0;
+    impuesto = (montoImponible * impuestoPorcentaje / 100).toFixed(2);
+    document.getElementById('impuesto').value = impuesto;
+    
+
+    total = parseFloat(subtotalGeneral) - parseFloat(descuento) + parseFloat(impuesto);
+    
+    document.getElementById('subtotal').textContent = `Bs. ${parseFloat(subtotalGeneral).toFixed(2)}`;
+    document.getElementById('total').textContent = `Bs. ${parseFloat(total).toFixed(2)}`;
   }
 
-  // Función para guardar la venta
   function guardarVenta() {
-    // Validaciones
-    const clienteId = document.getElementById("cliente").value;
-    if (!clienteId) {
-      alert("Por favor, seleccione un cliente.");
+
+    if (!clienteSeleccionado) {
+      alert('Por favor, seleccione un cliente.');
       return;
     }
-
+    
     if (productosAgregados.length === 0) {
-      alert("Debe agregar al menos un producto a la venta.");
+      alert('Debe agregar al menos un producto a la venta.');
       return;
     }
+    
 
-    // Preparar datos para enviar
     const ventaData = {
-      cliente_id: clienteId,
-      estado: document.getElementById("estado").value,
-      metodo_pago: document.getElementById("metodo_pago").value,
+      cliente_id: clienteSeleccionado.id,
+      estado: document.getElementById('estado').value,
+      metodo_pago: document.getElementById('metodo_pago').value,
       subtotal: subtotalGeneral,
       descuento: descuento,
       impuesto: impuesto,
       total: total,
-      notas: document.getElementById("notas").value,
-      items: productosAgregados.map((p) => ({
+      notas: document.getElementById('notas').value,
+      items: productosAgregados.map(p => ({
         producto_id: p.id,
         cantidad: p.cantidad,
         precio_unitario: p.precio,
-        subtotal: p.subtotal,
-      })),
+        subtotal: p.subtotal
+      }))
     };
+    
 
-    // Enviar petición al servidor
-    fetch("/ventas/api/crear/", {
-      method: "POST",
+    fetch('/ventas/crear/', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
-          .value,
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
       },
-      body: JSON.stringify(ventaData),
+      body: JSON.stringify(ventaData)
     })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          alert("Venta registrada correctamente");
-          window.location.href = "/ventas/";
-        } else {
-          alert(data.error || "Error al registrar la venta");
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        alert("Error al procesar la solicitud");
-      });
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Venta registrada correctamente');
+        window.location.href = '/ventas/';
+      } else {
+        alert(data.error || 'Error al registrar la venta');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error al procesar la solicitud');
+    });
   }
+  
 
-  // Función debounce para no hacer muchas peticiones en la búsqueda
   function debounce(func, wait) {
     let timeout;
-    return function () {
+    return function() {
       const context = this;
       const args = arguments;
       clearTimeout(timeout);

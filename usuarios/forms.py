@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm,  UserChangeForm
 from django.core.validators import RegexValidator
-from .models import UsuarioPersonalizado
+from .models import UsuarioPersonalizado, Rol
 
 class LoginForm(AuthenticationForm):
     username = forms.CharField(
@@ -18,13 +18,7 @@ class LoginForm(AuthenticationForm):
             'placeholder': 'Contraseña'
         })
     )
-
-# usuarios/forms.py
-from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, UserChangeForm
-from django.core.validators import RegexValidator
-from .models import UsuarioPersonalizado, Rol
-
+    
 class RegistroForm(UserCreationForm):
     password1 = forms.CharField(
         label='Contraseña',

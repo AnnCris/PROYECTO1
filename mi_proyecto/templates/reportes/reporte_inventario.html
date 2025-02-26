@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+
+  .reportes-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .reportes-menu {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+  }
+
+  .report-link {
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #444;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+  }
+
+  .report-link:hover {
+    background-color: #e9ecef;
+  }
+
+  .report-link.active {
+    background-color: rgb(68, 108, 148);
+    color: white;
+  }
+
+  .filtros-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+  }
+
+  .filtros-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+
+  .form-actions {
+    grid-column: 1 / -1;
+    text-align: right;
+    margin-top: 10px;
+  }
+
+  .resultados-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .resultados-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .export-options {
+    display: flex;
+    gap: 10px;
+  }
+
+  .resultados-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .resultados-table th,
+  .resultados-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+
+  .resultados-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+  }
+
+  .resultados-table tr:hover {
+    background-color: #f5f5f5;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 30px;
+    color: #6c757d;
+    font-style: italic;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-primary {
+    background-color: rgb(68, 108, 148);
+    color: white;
+  }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+  }
+
+  .stock-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    display: inline-block;
+  }
+
+  .stock-normal {
+    background-color: #28a745;
+    color: white;
+  }
+
+  .stock-bajo {
+    background-color: #ffc107;
+    color: #000;
+  }
+
+  .stock-critico {
+    background-color: #dc3545;
+    color: white;
+  }
+
+  .categoria-badge {
+    background-color: #e9ecef;
+    border-radius: 4px;
+    padding: 3px 6px;
+    font-size: 12px;
+  }
+</style>
+
+<div class="reportes-container">
+  <h1>Reporte de Inventario</h1>
+
+  <div class="reportes-menu">
+    <a href="{% url 'reportes:ventas' %}" class="report-link">
+      Reporte de Ventas
+    </a>
+    <a href="{% url 'reportes:inventario' %}" class="report-link active">
+      Reporte de Inventario
+    </a>
+    <a href="{% url 'reportes:clientes' %}" class="report-link">
+      Reporte de Clientes
+    </a>
+  </div>
+
+  <div class="filtros-container">
+    <h2>Filtros de Reporte</h2>
+    <form method="get" class="filtros-form">
+      {% for field in form %}
+      <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+      </div>
+      {% endfor %}
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Generar Reporte</button>
+      </div>
+    </form>
+  </div>
+
+  {% if resultados %}
+  <div class="resultados-container">
+    <div class="resultados-header">
+      <h2>Resultados</h2>
+      <div class="export-options">
+        <a href="?{{ request.GET.urlencode }}&export=true&format=csv" class="btn-secondary">Exportar CSV</a>
+        <a href="?{{ request.GET.urlencode }}&export=true&format=excel" class="btn-secondary">Exportar Excel</a>
+      </div>
+    </div>
+    
+    <table class="resultados-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Categoría</th>
+          <th>Precio</th>
+          <th>Stock Actual</th>
+          <th>Stock Mínimo</th>
+          <th>Estado</th>
+          <th>Ventas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for producto in resultados %}
+        <tr>
+          <td>{{ producto.codigo }}</td>
+          <td>{{ producto.nombre }}</td>
+          <td><span class="categoria-badge">{{ producto.get_categoria_display }}</span></td>
+          <td>Bs. {{ producto.precio|floatformat:2 }}</td>
+          <td>{{ producto.stock }}</td>
+          <td>{{ producto.stock_minimo }}</td>
+          <td>
+            {% if producto.stock <= 0 %}
+              <span class="stock-badge stock-critico">Sin Stock</span>
+            {% elif producto.stock <= producto.stock_minimo %}
+              <span class="stock-badge stock-bajo">Stock Bajo</span>
+            {% else %}
+              <span class="stock-badge stock-normal">Normal</span>
+            {% endif %}
+          </td>
+          <td>{{ producto.ventas_count|default:"0" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="no-results">No se encontraron resultados con los filtros seleccionados</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

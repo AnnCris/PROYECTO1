@@ -1,4 +1,4 @@
-<!-- templates/usuarios/gestionar_usuarios.html -->
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -7,7 +7,7 @@
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
       rel="stylesheet" />
     <style>
-      /* Copiar los estilos del dashboard */
+
       * {
         margin: 0;
         padding: 0;
@@ -84,7 +84,7 @@
         transition: all 0.3s;
       }
 
-      /* Estilos específicos para la tabla de usuarios */
+
       .user-table {
         width: 100%;
         background: white;
@@ -193,7 +193,7 @@
         font-size: 24px;
       }
 
-      /* Botones de acción */
+
       .action-btn {
         padding: 6px 12px;
         border-radius: 4px;
@@ -212,7 +212,7 @@
         color: white;
       }
 
-      /* Formulario */
+
       .form-row {
         margin-bottom: 15px;
       }
@@ -261,11 +261,12 @@
           <li class="nav-item">
             <a href="{% url 'gestionar_usuarios' %}">Usuarios</a>
           </li>
-          <li class="nav-item">Reportes</li>
+          <li class="nav-item">
+            <a href="{% url 'reportes:index' %}">Reportes</a>
+          </li>
         </ul>
       </div>
 
-      <!-- Main Content -->
       <div class="main-content">
         <div class="top-bar">
           <div class="user-info">
@@ -394,7 +395,7 @@
           document.getElementById("userForm").reset();
           document.getElementById("userId").value = "";
 
-          // Agregar el required a los campos de contraseña y mostrarlos
+
           const password1 = document.getElementById("password1");
           const password2 = document.getElementById("password2");
           password1.setAttribute("required", "required");
@@ -412,7 +413,6 @@
           document.getElementById("rol").value = rolId || "";
           document.getElementById("isActive").value = isActive.toString();
 
-          // Remover el required de los campos de contraseña y ocultarlos
           const password1 = document.getElementById("password1");
           const password2 = document.getElementById("password2");
           password1.removeAttribute("required");
@@ -458,7 +458,7 @@
           event.preventDefault();
           const userId = document.getElementById("userId").value;
 
-          // Recoger los datos del formulario
+
           const datos = {
             username: document.getElementById("username").value,
             email: document.getElementById("email").value,
@@ -467,7 +467,7 @@
           };
 
           if (!userId) {
-            // Si es creación, añadir las contraseñas
+
             const password1 = document.getElementById("password1").value;
             const password2 = document.getElementById("password2").value;
 

@@ -40,17 +40,15 @@ class Venta(models.Model):
         ordering = ['-fecha']
         
     def __str__(self):
-        return f"Venta #{self.id} - {self.cliente.nombre}"
+        return f"Venta #{self.id} - {self.cliente.nombres} {self.cliente.apellidos}"
     
     def calcular_totales(self):
-        """Calcula los totales basados en los detalles de venta"""
         detalles = self.detalles.all()
         self.subtotal = sum(detalle.subtotal for detalle in detalles)
         self.total = self.subtotal - self.descuento + self.impuesto
         return self.total
     
     def actualizar_stock(self):
-        """Actualiza el stock de los productos después de confirmar la venta"""
         for detalle in self.detalles.all():
             producto = detalle.producto
             producto.stock -= detalle.cantidad

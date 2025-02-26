@@ -32,7 +32,7 @@ def crear_cliente(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
-# Agrega esta nueva vista
+
 @login_required
 def detalle_cliente(request, cliente_id):
     try:
@@ -59,7 +59,7 @@ def actualizar_cliente(request, cliente_id):
     import json
     cliente = get_object_or_404(Cliente, id=cliente_id)
     try:
-        # Decodificar los datos JSON del body
+
         data = json.loads(request.body)
         form = ClienteForm(data, instance=cliente)
         if form.is_valid():
